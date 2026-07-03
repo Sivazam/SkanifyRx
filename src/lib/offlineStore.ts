@@ -146,8 +146,13 @@ export async function patchPendingUpload(
 }
 
 /**
- * Recover captures stranded in 'uploading' by an interrupted run (tab closed / crashed mid-sync).
- * They never completed, so reset them to 'pending' for the next sync. Returns how many were reset.
+ * Prepare the queue for a sync run:
+ *  - captures stranded in 'uploading' by an interrupted run (tab closed / crashed mid-sync) never
+ *    completed, so reset them to 'pending';
+ *  - 'failed' captures (exhausted retries in a previous session) get a fresh chance now that a new
+ *    sync is running (typically triggered by connectivity returning) — reset to 'pending' with a
+ *    cleared retry count, so transient failures recover instead of staying permanently stuck.
+ * Returns how many records were reset.
  */
 export async function resetStalledUploads(): Promise<number> {
   const db = await openDB();
@@ -163,6 +168,9 @@ export async function resetStalledUploads(): Promise<number> {
       for (const record of records) {
         if (record.status === 'uploading') {
           store.put({ ...record, status: 'pending' });
+          reset++;
+        } else if (record.status === 'failed') {
+          store.put({ ...record, status: 'pending', retryCount: 0 });
           reset++;
         }
       }

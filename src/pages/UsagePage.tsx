@@ -78,7 +78,7 @@ export function UsagePage() {
                 return (
                   <tr key={log.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                      {new Date((log.timestamp as unknown as { toDate?: () => Date }).toDate?.() ?? log.timestamp).toLocaleString()}
+                      {log.timestamp ? new Date((log.timestamp as unknown as { toDate?: () => Date }).toDate?.() ?? log.timestamp).toLocaleString() : '—'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${isDeduction ? 'bg-amber-50 text-amber-700 ring-amber-600/20' : 'bg-emerald-50 text-emerald-700 ring-emerald-600/20'}`}>

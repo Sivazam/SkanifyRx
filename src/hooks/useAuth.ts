@@ -32,6 +32,10 @@ export function useAuth() {
     let profileUnsubscribe: () => void;
 
     const authUnsubscribe = onIdTokenChanged(auth, async (fbUser) => {
+      // onIdTokenChanged also fires on every token refresh (getIdToken(true)). Tear down any
+      // previous profile listener first so we don't accumulate snapshot subscriptions.
+      if (profileUnsubscribe) profileUnsubscribe();
+
       if (fbUser) {
         const token = await fbUser.getIdTokenResult();
         setFirebaseUser(fbUser);

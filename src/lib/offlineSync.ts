@@ -74,6 +74,17 @@ async function uploadBatch(pendings: PendingUpload[]): Promise<boolean> {
       imageUrls.push(storagePath);
     }
 
+    // If a prior attempt already created this invoice, do NOT re-create it or re-trigger
+    // processing — that would regress a status the backend has since advanced (e.g. review ->
+    // uploading) and cause a second processing run. Just clean up the queue.
+    const existing = await getDoc(invoiceDoc);
+    if (existing.exists()) {
+      for (const pending of pendings) {
+        await removePendingUpload(pending.id);
+      }
+      return true;
+    }
+
     // Fetch pharmacy settings
     let visionApiMode = 'gemini_vision';
     let ocrProvider = 'vision';
@@ -100,6 +111,8 @@ async function uploadBatch(pendings: PendingUpload[]): Promise<boolean> {
     // Create Firestore document
     await setDoc(invoiceDoc, {
       pharmacyId,
+      uploadedBy: auth.currentUser?.uid ?? null,
+      uploadedByName: auth.currentUser?.displayName ?? null,
       supplierName: '',
       invoiceNumber: '',
       invoiceDate: '',
