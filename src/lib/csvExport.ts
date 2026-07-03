@@ -38,6 +38,19 @@ export const DEFAULT_COLUMNS: CSVColumn[] = [
 ];
 
 /**
+ * Neutralize CSV formula injection: a string cell beginning with = + - @ (or tab/CR)
+ * is treated as a formula by Excel/Sheets. A crafted drug name like `=HYPERLINK(...)`
+ * (from OCR or a manual edit) would then execute on open. Prefixing an apostrophe forces
+ * the cell to be interpreted as text. Numbers are left untouched so they stay numeric.
+ */
+function sanitizeCell(value: unknown): unknown {
+  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(value)) {
+    return `'${value}`;
+  }
+  return value;
+}
+
+/**
  * Generate CSV string from line items.
  * Includes UTF-8 BOM for correct Excel display.
  * @param invoiceMeta - Invoice-level metadata to inject into every row (e.g. invoiceDate)
@@ -55,12 +68,15 @@ export function generateCSV(
   // Build data rows
   const rows = lineItems.map((item, index) =>
     enabledColumns.map((col) => {
-      if (col.key === 'srNo') return index + 1;
-      if (col.key === 'invoiceNumber') return invoiceMeta?.invoiceNumber ?? '';
-      if (col.key === 'invoiceDate') return invoiceMeta?.invoiceDate ?? '';
-      const value = item[col.key as keyof LineItem];
-      if (value === null || value === undefined) return '';
-      return value;
+      let value: unknown;
+      if (col.key === 'srNo') value = index + 1;
+      else if (col.key === 'invoiceNumber') value = invoiceMeta?.invoiceNumber ?? '';
+      else if (col.key === 'invoiceDate') value = invoiceMeta?.invoiceDate ?? '';
+      else {
+        const raw = item[col.key as keyof LineItem];
+        value = raw === null || raw === undefined ? '' : raw;
+      }
+      return sanitizeCell(value);
     })
   );
 
