@@ -127,7 +127,7 @@ export function DashboardPage() {
     invoices.forEach(inv => {
       let dateStr = "Unknown Date";
       if (inv.createdAt) {
-        dateStr = (inv.createdAt as any).toDate ? (inv.createdAt as any).toDate().toISOString() : new Date(inv.createdAt as any).toISOString();
+        dateStr = new Date((inv.createdAt as unknown as { toDate?: () => Date }).toDate?.() ?? inv.createdAt).toISOString();
       }
       
       const groupKey = dateStr !== "Unknown Date" ? formatDateGroup(dateStr) : dateStr;

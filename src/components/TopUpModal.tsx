@@ -48,8 +48,8 @@ export function TopUpModal({ isOpen, onClose, userId, userName, onSuccess }: Top
       onClose();
       setCredits('');
       setNote('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to add credits');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to add credits');
     } finally {
       setIsLoading(false);
     }

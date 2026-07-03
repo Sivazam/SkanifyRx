@@ -56,11 +56,10 @@ export async function convertPdfToImages(pdfFile: File): Promise<File[]> {
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
-      // Render page into the canvas context
-      const renderContext = {
-        canvasContext: ctx,
-        viewport: viewport,
-      } as any;
+      // Render page into the canvas context. pdf.js RenderParameters typing varies across
+      // versions, so cast the minimal shape it needs.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const renderContext = { canvasContext: ctx, viewport } as any;
 
       console.log(`[pdfExtract] Rendering page ${i}...`);
       await page.render(renderContext).promise;

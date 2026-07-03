@@ -5,6 +5,7 @@
  * - Blur detection: Laplacian variance
  * - Preprocessing: grayscale + auto-levels + contrast enhancement
  */
+/* eslint-disable @typescript-eslint/no-explicit-any -- OpenCV.js (window.cv) and its Mat objects ship no TypeScript types */
 
 export interface Point {
   x: number;
@@ -172,11 +173,11 @@ async function dewarpWithOpenCV(canvas: HTMLCanvasElement): Promise<HTMLCanvasEl
     approxContour = new cv.Mat();
 
     for (let i = 0; i < contours.size(); ++i) {
-      let cnt = contours.get(i);
-      let area = cv.contourArea(cnt);
+      const cnt = contours.get(i);
+      const area = cv.contourArea(cnt);
       if (area > 1000) {
-        let peri = cv.arcLength(cnt, true);
-        let approx = new cv.Mat();
+        const peri = cv.arcLength(cnt, true);
+        const approx = new cv.Mat();
         cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
         
         if (approx.rows === 4 && area > maxArea) {
@@ -193,25 +194,25 @@ async function dewarpWithOpenCV(canvas: HTMLCanvasElement): Promise<HTMLCanvasEl
     const imgArea = src.cols * src.rows;
     if (maxContourIndex !== -1 && maxArea > imgArea * 0.15) {
       // Sort points: [tl, tr, br, bl]
-      let pts = [];
+      const pts = [];
       for (let i = 0; i < 4; i++) {
         pts.push({ x: approxContour.data32S[i * 2], y: approxContour.data32S[i * 2 + 1] });
       }
 
       // Sort by sum/diff to find corners
       pts.sort((a, b) => a.y - b.y);
-      let top = pts.slice(0, 2).sort((a, b) => a.x - b.x);
-      let bottom = pts.slice(2, 4).sort((a, b) => a.x - b.x);
-      let tl = top[0], tr = top[1], bl = bottom[0], br = bottom[1];
+      const top = pts.slice(0, 2).sort((a, b) => a.x - b.x);
+      const bottom = pts.slice(2, 4).sort((a, b) => a.x - b.x);
+      const tl = top[0], tr = top[1], bl = bottom[0], br = bottom[1];
 
       // Compute width/height of new image
-      let widthA = Math.sqrt(Math.pow(br.x - bl.x, 2) + Math.pow(br.y - bl.y, 2));
-      let widthB = Math.sqrt(Math.pow(tr.x - tl.x, 2) + Math.pow(tr.y - tl.y, 2));
-      let maxWidth = Math.max(Math.floor(widthA), Math.floor(widthB));
+      const widthA = Math.sqrt(Math.pow(br.x - bl.x, 2) + Math.pow(br.y - bl.y, 2));
+      const widthB = Math.sqrt(Math.pow(tr.x - tl.x, 2) + Math.pow(tr.y - tl.y, 2));
+      const maxWidth = Math.max(Math.floor(widthA), Math.floor(widthB));
 
-      let heightA = Math.sqrt(Math.pow(tr.x - br.x, 2) + Math.pow(tr.y - br.y, 2));
-      let heightB = Math.sqrt(Math.pow(tl.x - bl.x, 2) + Math.pow(tl.y - bl.y, 2));
-      let maxHeight = Math.max(Math.floor(heightA), Math.floor(heightB));
+      const heightA = Math.sqrt(Math.pow(tr.x - br.x, 2) + Math.pow(tr.y - br.y, 2));
+      const heightB = Math.sqrt(Math.pow(tl.x - bl.x, 2) + Math.pow(tl.y - bl.y, 2));
+      const maxHeight = Math.max(Math.floor(heightA), Math.floor(heightB));
 
       // Define source and destination points
       srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y]);
@@ -254,8 +255,8 @@ async function dewarpWithOpenCV(canvas: HTMLCanvasElement): Promise<HTMLCanvasEl
 
 function findPaperCornersOpenCV(canvas: HTMLCanvasElement): Point[] | null {
   const cv = window.cv;
-  let src = cv.imread(canvas);
-  let dst = new cv.Mat();
+  const src = cv.imread(canvas);
+  const dst = new cv.Mat();
   
   try {
     // 1. Convert to grayscale & blur
@@ -266,20 +267,20 @@ function findPaperCornersOpenCV(canvas: HTMLCanvasElement): Point[] | null {
     cv.Canny(dst, dst, 75, 200);
 
     // 3. Find contours
-    let contours = new cv.MatVector();
-    let hierarchy = new cv.Mat();
+    const contours = new cv.MatVector();
+    const hierarchy = new cv.Mat();
     cv.findContours(dst, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
     let maxArea = 0;
     let maxContourIndex = -1;
-    let approxContour = new cv.Mat();
+    const approxContour = new cv.Mat();
 
     for (let i = 0; i < contours.size(); ++i) {
-      let cnt = contours.get(i);
-      let area = cv.contourArea(cnt);
+      const cnt = contours.get(i);
+      const area = cv.contourArea(cnt);
       if (area > 1000) {
-        let peri = cv.arcLength(cnt, true);
-        let approx = new cv.Mat();
+        const peri = cv.arcLength(cnt, true);
+        const approx = new cv.Mat();
         cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
         
         if (approx.rows === 4 && area > maxArea) {
@@ -297,15 +298,15 @@ function findPaperCornersOpenCV(canvas: HTMLCanvasElement): Point[] | null {
 
     // Must be at least 15% of the frame
     if (maxContourIndex !== -1 && maxArea > imgArea * 0.15) {
-      let pts = [];
+      const pts = [];
       for (let i = 0; i < 4; i++) {
         pts.push({ x: approxContour.data32S[i * 2], y: approxContour.data32S[i * 2 + 1] });
       }
 
       // Sort points: [tl, tr, br, bl]
       pts.sort((a, b) => a.y - b.y);
-      let top = pts.slice(0, 2).sort((a, b) => a.x - b.x);
-      let bottom = pts.slice(2, 4).sort((a, b) => a.x - b.x);
+      const top = pts.slice(0, 2).sort((a, b) => a.x - b.x);
+      const bottom = pts.slice(2, 4).sort((a, b) => a.x - b.x);
       
       // Expected format is [TL, TR, BR, BL]
       result = [top[0], top[1], bottom[1], bottom[0]];

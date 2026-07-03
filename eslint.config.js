@@ -23,6 +23,12 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
+      // Allow `const { a, b, ...rest } = obj` to omit fields, `_`-prefixed intentional unused,
+      // and don't flag unused catch bindings.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true, caughtErrors: 'none' },
+      ],
     },
   },
 )

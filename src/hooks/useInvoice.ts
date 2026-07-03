@@ -94,9 +94,22 @@ export function useInvoiceList(pharmacyId: string | null, limitCount: number = 5
   return { invoices, loading, hasMore, lastDoc };
 }
 
+/** A row in the exportedInvoices collection (History page). */
+export interface ExportedInvoiceRecord {
+  id: string;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  supplierName?: string;
+  totalItems?: number;
+  imageUrls: string[];
+  products: LineItem[];
+  [key: string]: unknown;
+}
+
 /** Paginated hook for exported invoices (History page) */
 export function useExportedInvoiceList(pharmacyId: string | null) {
-  const [invoices, setInvoices] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<ExportedInvoiceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
@@ -114,7 +127,7 @@ export function useExportedInvoiceList(pharmacyId: string | null) {
     const q = query(colRef, orderBy('exportedAt', 'desc'), limit(20));
     
     getDocs(q).then((snap) => {
-      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ExportedInvoiceRecord);
       setInvoices(items);
       setLastDoc(snap.docs[snap.docs.length - 1] || null);
       setHasMore(snap.docs.length === 20);
@@ -134,7 +147,7 @@ export function useExportedInvoiceList(pharmacyId: string | null) {
       const q = query(colRef, orderBy('exportedAt', 'desc'), startAfter(lastDoc), limit(20));
       const snap = await getDocs(q);
       
-      const newItems = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const newItems = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ExportedInvoiceRecord);
       setInvoices(prev => [...prev, ...newItems]);
       setLastDoc(snap.docs[snap.docs.length - 1] || null);
       setHasMore(snap.docs.length === 20);

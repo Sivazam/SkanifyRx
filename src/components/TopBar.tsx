@@ -1,7 +1,8 @@
 import { NavLink } from 'react-router-dom';
+import type { AuthUser } from '../types';
 
 interface TopBarProps {
-  user: any;
+  user: AuthUser | null;
   isOnline: boolean;
   pendingCount: number;
   handleSignOut?: () => void;

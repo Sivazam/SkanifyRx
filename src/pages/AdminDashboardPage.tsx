@@ -14,6 +14,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon
 } from '@heroicons/react/24/outline';
+import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import type { UserProfile, Invoice } from '../types';
 
 export function AdminDashboardPage() {
@@ -21,7 +22,7 @@ export function AdminDashboardPage() {
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [systemScans, setSystemScans] = useState<Invoice[]>([]);
-  const [lastScanDoc, setLastScanDoc] = useState<any>(null);
+  const [lastScanDoc, setLastScanDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [loadingMoreScans, setLoadingMoreScans] = useState(false);
   const [hasMoreScans, setHasMoreScans] = useState(true);
   const [expandedScanId, setExpandedScanId] = useState<string | null>(null);
@@ -87,9 +88,9 @@ export function AdminDashboardPage() {
         setLastScanDoc(scansSnap.docs[scansSnap.docs.length - 1] || null);
         setHasMoreScans(scansSnap.docs.length === 50);
         setScanFetchError(null);
-      } catch (err: any) {
+      } catch (err) {
         console.error('Failed to fetch system scans (might need index)', err);
-        setScanFetchError(err.message || String(err));
+        setScanFetchError(err instanceof Error ? err.message : String(err));
       }
 
       const settingsDoc = await getDoc(doc(db, 'global', 'settings'));
@@ -566,7 +567,7 @@ export function AdminDashboardPage() {
                           ) : 'Unknown'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {scan.createdAt ? new Date((scan.createdAt as any).toDate ? (scan.createdAt as any).toDate() : scan.createdAt).toLocaleString() : 'N/A'}
+                          {scan.createdAt ? new Date((scan.createdAt as unknown as { toDate?: () => Date }).toDate?.() ?? scan.createdAt).toLocaleString() : 'N/A'}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${scan.status === 'error' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>

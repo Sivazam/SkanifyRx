@@ -76,7 +76,7 @@ export function useAuth() {
           } else {
             // Only touch non-privileged fields on subsequent logins.
             const data = userDoc.data();
-            const updates: Record<string, any> = { lastLoginAt: serverTimestamp() };
+            const updates: Record<string, unknown> = { lastLoginAt: serverTimestamp() };
             if (data.displayName === undefined) updates.displayName = fbUser.displayName || null;
             await setDoc(userRef, updates, { merge: true });
           }

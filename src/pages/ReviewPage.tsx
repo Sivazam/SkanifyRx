@@ -85,7 +85,7 @@ function CompactLineItemCard({
   edits: Record<string, string>;
   onFieldChange: (itemId: string, field: string, value: string) => void;
 }) {
-  const suggested = (item as any)['suggestedDrugName'];
+  const suggested = (item as unknown as Record<string, unknown>)['suggestedDrugName'] as string | undefined;
   
   const warnings: Array<{ field: string; message: string; severity: string }> =
     (item as unknown as Record<string, unknown>)['validationWarnings'] as Array<{
@@ -156,7 +156,7 @@ function CompactLineItemCard({
          {/* Other Fields Grid */}
          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3">
            {EDITABLE_FIELDS.filter(f => f.key !== 'drugName').map(f => {
-             const currentValue = edits[`${item.id}:${f.key}`] ?? (item as any)[f.key] ?? '';
+             const currentValue = edits[`${item.id}:${f.key}`] ?? ((item as unknown as Record<string, unknown>)[f.key] as string | number | undefined) ?? '';
              const isEdited = edits[`${item.id}:${f.key}`] !== undefined;
              const fieldWarnings = warnings.filter(w => w.field === f.key);
              
@@ -310,6 +310,8 @@ export function ReviewPage() {
       const docRef = doc(db, 'pharmacies', pharmacyId, 'invoices', invoiceId);
       updateDoc(docRef, { viewed: true }).catch(console.error);
     }
+    // Intentional: only re-run when `viewed` flips, not on every invoice field change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoice?.viewed, pharmacyId, invoiceId]);
 
   useEffect(() => {
@@ -484,6 +486,8 @@ export function ReviewPage() {
       // Save any edits back to the raw invoice subcollections
       const editedEntries = Object.entries(edits);
       const invoiceRef = doc(db, 'pharmacies', pharmacyId, 'invoices', invoiceId);
+      // Heterogeneous Firestore update payload (strings + FieldValue sentinels).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const invoiceUpdates: Record<string, any> = {
         status: 'exported',
         updatedAt: serverTimestamp(),
@@ -539,7 +543,7 @@ export function ReviewPage() {
       const exportDocRef = doc(db, 'pharmacies', pharmacyId, 'exportedInvoices', exportDocId);
       
       const cleanProducts = editedLineItems.map(li => {
-        const { needsReview, confidenceScore, ocrComparison, ...rest } = li as any;
+        const { needsReview, confidenceScore, ocrComparison, ...rest } = li as Record<string, unknown>;
         return rest;
       });
 
@@ -607,7 +611,7 @@ export function ReviewPage() {
     } finally {
       setSaving(false);
     }
-  }, [pharmacyId, invoiceId, edits, editedLineItems, invoice, hasInvoiceEdits, invoiceEdits]);
+  }, [pharmacyId, invoiceId, edits, editedLineItems, lineItems, invoice, hasInvoiceEdits, invoiceEdits]);
 
   // Submit feedback, save accuracy metrics, and mark as exported
   const handleFeedback = useCallback(

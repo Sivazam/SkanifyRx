@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router-dom';
 import { useAuthContext } from '../context/AuthContext';
+import type { AuthUser } from '../types';
 
 interface SidebarProps {
-  user: any;
+  user: AuthUser | null;
   handleSignOut: () => void;
 }
 
