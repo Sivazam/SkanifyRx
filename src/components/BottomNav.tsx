@@ -41,7 +41,7 @@ export function BottomNav() {
           </NavLink>
         </div>
 
-        {(userProfile?.role === 'admin' || userProfile?.role === 'super_admin') && (
+        {userProfile?.role === 'super_admin' && (
           <NavLink to="/admin" className={({ isActive }) => `flex flex-col items-center py-2 text-[10px] transition-colors w-14 ${isActive ? 'text-[var(--color-primary-dark)] font-bold' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'}`}>
             {({ isActive }) => (
               <>

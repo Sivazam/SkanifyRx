@@ -44,9 +44,9 @@ export function AdminDashboardPage() {
   const [topUpUser, setTopUpUser] = useState<{ id: string, name: string } | null>(null);
 
   useEffect(() => {
-    // Role check
+    // Role check — the platform dashboard is super_admin only.
     if (!userProfile) return;
-    if (userProfile.role !== 'admin' && userProfile.role !== 'super_admin') {
+    if (userProfile.role !== 'super_admin') {
       toast.error('Access denied');
       navigate('/');
       return;
