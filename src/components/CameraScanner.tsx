@@ -124,7 +124,11 @@ export function CameraScanner({ onCapture, onClose }: CameraScannerProps) {
         drawOverlay(ctx, overlay.width, overlay.height, smoothed);
       }
 
-      detectionRef.current = requestAnimationFrame(detect);
+      // Stop the detection loop once the camera stream has been released (after capture/close),
+      // otherwise it keeps running against a dead <video> element.
+      if (streamRef.current) {
+        detectionRef.current = requestAnimationFrame(detect);
+      }
     }
 
     detectionRef.current = requestAnimationFrame(detect);

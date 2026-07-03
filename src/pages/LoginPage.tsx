@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import type { ConfirmationResult } from 'firebase/auth';
@@ -6,6 +6,17 @@ import type { ConfirmationResult } from 'firebase/auth';
 export function LoginPage() {
   const { sendOtp, verifyOtp, signInWithGoogle } = useAuthContext();
   const navigate = useNavigate();
+
+  // Release the invisible reCAPTCHA verifier when leaving the page so a later visit can
+  // re-render it cleanly (otherwise "reCAPTCHA has already been rendered" can block re-login).
+  useEffect(() => {
+    return () => {
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
+      }
+    };
+  }, []);
 
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');

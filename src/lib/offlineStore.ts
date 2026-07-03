@@ -17,6 +17,10 @@ export interface PendingUpload {
   capturedAt: number; // Date.now()
   status: 'pending' | 'uploading' | 'failed';
   retryCount: number;
+  /** Firestore invoice id assigned to this batch — pinned so retries reuse the same doc. */
+  invoiceId?: string;
+  /** Storage path once this file has uploaded — so a retry skips re-uploading it. */
+  uploadedPath?: string;
 }
 
 function openDB(): Promise<IDBDatabase> {
@@ -94,14 +98,17 @@ export async function getPendingUploads(): Promise<PendingUpload[]> {
   });
 }
 
-/** Get count of pending uploads */
+/**
+ * Count outstanding captures. Completed uploads are deleted from the store, so ANY remaining
+ * record still needs attention — pending, in-flight ('uploading'), or 'failed'. Counting them
+ * all (rather than only 'pending') means stranded/failed captures are never silently hidden.
+ */
 export async function getPendingCount(): Promise<number> {
   const db = await openDB();
 
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
-    const index = tx.objectStore(STORE_NAME).index('status');
-    const request = index.count(IDBKeyRange.only('pending'));
+    const request = tx.objectStore(STORE_NAME).count();
 
     request.onsuccess = () => {
       db.close();
@@ -111,6 +118,58 @@ export async function getPendingCount(): Promise<number> {
       db.close();
       reject(request.error);
     };
+  });
+}
+
+/** Merge a partial patch into a pending record (e.g. pin invoiceId / uploadedPath / status). */
+export async function patchPendingUpload(
+  id: string,
+  patch: Partial<PendingUpload>,
+): Promise<void> {
+  const db = await openDB();
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const getReq = store.get(id);
+
+    getReq.onsuccess = () => {
+      const record = getReq.result as PendingUpload | undefined;
+      if (record) {
+        store.put({ ...record, ...patch, id: record.id });
+      }
+    };
+
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+
+/**
+ * Recover captures stranded in 'uploading' by an interrupted run (tab closed / crashed mid-sync).
+ * They never completed, so reset them to 'pending' for the next sync. Returns how many were reset.
+ */
+export async function resetStalledUploads(): Promise<number> {
+  const db = await openDB();
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.getAll();
+    let reset = 0;
+
+    request.onsuccess = () => {
+      const records = (request.result as PendingUpload[]) ?? [];
+      for (const record of records) {
+        if (record.status === 'uploading') {
+          store.put({ ...record, status: 'pending' });
+          reset++;
+        }
+      }
+    };
+
+    tx.oncomplete = () => { db.close(); resolve(reset); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
   });
 }
 

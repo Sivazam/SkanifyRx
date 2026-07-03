@@ -22,10 +22,17 @@ export function GlobalProgressOverlay() {
       where('status', 'in', ['uploading', 'preprocessing', 'ocr_running', 'validating'])
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const active = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invoice));
-      setActiveInvoices(active);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const active = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invoice));
+        setActiveInvoices(active);
+      },
+      (err) => {
+        console.error('[GlobalProgressOverlay] invoice listener error:', err);
+        setActiveInvoices([]);
+      },
+    );
 
     return () => unsubscribe();
   }, [user?.pharmacyId]);

@@ -23,8 +23,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Block inactive users (unless they are on the onboarding page trying to set up)
-  if (userProfile && !userProfile.active && location.pathname !== '/onboarding') {
+  // Block inactive users (unless they are on the onboarding page trying to set up).
+  // Treat a missing profile as NOT active — a null profile must not fall through to protected
+  // content. (Firestore rules are the real enforcement; this keeps the UI consistent.)
+  if (user && !userProfile?.active && location.pathname !== '/onboarding') {
     return <InactiveAccountScreen />;
   }
 

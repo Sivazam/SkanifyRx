@@ -8,11 +8,13 @@ export function UsagePage() {
   const { user } = useAuthContext();
   const [logs, setLogs] = useState<UsageLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
 
     const fetchLogs = async () => {
+      setError(null);
       try {
         const q = query(
           collection(db, 'users', user.uid, 'usageLogs'),
@@ -24,6 +26,7 @@ export function UsagePage() {
         setLogs(data);
       } catch (err) {
         console.error('Failed to fetch usage logs:', err);
+        setError('Could not load your usage history. Please check your connection and try again.');
       } finally {
         setLoading(false);
       }
@@ -47,6 +50,12 @@ export function UsagePage() {
         <p className="mt-1 text-sm text-slate-500">Track your document scans and credit top-ups.</p>
       </div>
 
+      {error && (
+        <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
       <div className="rounded-2xl bg-white shadow-sm border border-slate-200 overflow-hidden">
         {logs.length === 0 ? (
           <div className="p-12 text-center">
@@ -60,7 +69,6 @@ export function UsagePage() {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">Action</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">Balance</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-900 uppercase">Details</th>
               </tr>
             </thead>
@@ -83,9 +91,6 @@ export function UsagePage() {
                       <span className={isDeduction ? 'text-amber-600' : 'text-emerald-600'}>
                         {isDeduction ? '-' : '+'}{isDeduction ? log.creditsDeducted : log.creditsAdded}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                      -
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 truncate max-w-[200px]" title={log.note || log.invoiceId}>
                       {log.note || (log.invoiceId ? `Invoice: ${log.invoiceId.substring(0, 8)}...` : '-')}

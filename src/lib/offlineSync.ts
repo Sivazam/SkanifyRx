@@ -9,6 +9,8 @@ import { getApiUrl } from './api';
 import {
   getPendingUploads,
   updatePendingStatus,
+  patchPendingUpload,
+  resetStalledUploads,
   removePendingUpload,
   type PendingUpload,
 } from './offlineStore';
@@ -30,23 +32,32 @@ async function uploadBatch(pendings: PendingUpload[]): Promise<boolean> {
   
   const pharmacyId = pendings[0].pharmacyId;
 
+  // Reuse an invoiceId already pinned to this batch by a previous attempt (idempotent retries),
+  // otherwise mint a new one. This stops a partial-failure retry from creating a duplicate invoice.
+  const invoicesRef = collection(db, 'pharmacies', pharmacyId, 'invoices');
+  const pinnedInvoiceId = pendings.find((p) => p.invoiceId)?.invoiceId;
+  const invoiceDoc = pinnedInvoiceId ? doc(invoicesRef, pinnedInvoiceId) : doc(invoicesRef);
+  const invoiceId = invoiceDoc.id;
+
   try {
     for (const pending of pendings) {
-      await updatePendingStatus(pending.id, 'uploading');
+      await patchPendingUpload(pending.id, { status: 'uploading', invoiceId });
     }
-
-    // Create invoice doc
-    const invoicesRef = collection(db, 'pharmacies', pharmacyId, 'invoices');
-    const invoiceDoc = doc(invoicesRef);
-    const invoiceId = invoiceDoc.id;
 
     const imageUrls: string[] = [];
 
     // Upload each file to Storage
     for (let i = 0; i < pendings.length; i++) {
       const pending = pendings[i];
+
+      // Skip files already uploaded in a prior attempt — avoids re-uploading and the
+      // no-overwrite Storage rule, and keeps the same paths on the invoice doc.
+      if (pending.uploadedPath) {
+        imageUrls.push(pending.uploadedPath);
+        continue;
+      }
+
       let fileToUpload: Blob = pending.file;
-      
       if (pending.fileType === 'image') {
         const asFile = new File([pending.file], pending.fileName, { type: pending.file.type });
         fileToUpload = await imageCompression(asFile, { maxSizeMB: 1, maxWidthOrHeight: 2400, useWebWorker: true });
@@ -59,6 +70,7 @@ async function uploadBatch(pendings: PendingUpload[]): Promise<boolean> {
 
       const storageRef = ref(storage, storagePath);
       await uploadBytes(storageRef, fileToUpload);
+      await patchPendingUpload(pending.id, { uploadedPath: storagePath });
       imageUrls.push(storagePath);
     }
 
@@ -108,7 +120,7 @@ async function uploadBatch(pendings: PendingUpload[]): Promise<boolean> {
       capturedAt: new Date(pendings[0].capturedAt),
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
-    });
+    }, { merge: true });
 
     // Trigger processing
     const token = await auth.currentUser?.getIdToken();
@@ -152,6 +164,9 @@ async function uploadBatch(pendings: PendingUpload[]): Promise<boolean> {
 
 /** Sync all pending offline captures */
 export async function syncPendingUploads(): Promise<SyncResult> {
+  // Recover anything left in 'uploading' by an interrupted previous run before we read the queue.
+  await resetStalledUploads();
+
   const pending = await getPendingUploads();
   const toSync = pending.filter((p) => p.status === 'pending');
 
@@ -183,7 +198,7 @@ export async function syncPendingUploads(): Promise<SyncResult> {
 export function startAutoSync(onSync?: (result: SyncResult) => void): () => void {
   let syncing = false;
 
-  const handleOnline = async () => {
+  const runSync = async () => {
     if (syncing) return;
     syncing = true;
     try {
@@ -194,6 +209,16 @@ export function startAutoSync(onSync?: (result: SyncResult) => void): () => void
     } finally {
       syncing = false;
     }
+  };
+
+  // Serialize sync across tabs with a Web Lock so two tabs coming online together can't both
+  // pick up the same queued captures and create duplicate invoices. Falls back to a plain run.
+  const handleOnline = () => {
+    const locks = navigator.locks;
+    const p = locks?.request
+      ? locks.request('skanifyrx-offline-sync', { ifAvailable: true }, (lock) => (lock ? runSync() : undefined))
+      : runSync();
+    Promise.resolve(p).catch((err) => console.error('[OfflineSync] sync error:', err));
   };
 
   window.addEventListener('online', handleOnline);

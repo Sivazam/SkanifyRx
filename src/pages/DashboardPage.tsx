@@ -5,8 +5,9 @@ import { useInvoiceList } from '../hooks/useInvoice';
 import { CardSkeleton } from '../components/Skeleton';
 import { getStatusProgress } from '../lib/progress';
 import type { Invoice, InvoiceStatus } from '../types';
-import { deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { deleteDoc, doc, getDoc } from 'firebase/firestore';
+import { ref, deleteObject } from 'firebase/storage';
+import { db, storage } from '../lib/firebase';
 
 const statusConfig: Record<InvoiceStatus, { label: string; color: string }> = {
   uploading: { label: 'Uploading', color: 'bg-blue-100 text-blue-800' },
@@ -215,6 +216,12 @@ export function DashboardPage() {
                     if (window.confirm('Are you sure you want to delete this invoice?')) {
                       try {
                         const invoiceRef = doc(db, 'pharmacies', user!.pharmacyId!, 'invoices', id);
+                        // Best-effort: remove the invoice's Storage images so they don't orphan.
+                        try {
+                          const snap = await getDoc(invoiceRef);
+                          const urls = (snap.data()?.imageUrls as string[] | undefined) ?? [];
+                          await Promise.all(urls.map((p) => deleteObject(ref(storage, p)).catch(() => {})));
+                        } catch { /* ignore storage cleanup errors */ }
                         await deleteDoc(invoiceRef);
                       } catch (error) {
                         console.error("Error deleting document: ", error);
