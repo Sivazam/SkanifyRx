@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <rect width="180" height="180" rx="27" fill="#1a73e8"/>
+  <text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="63" fill="white">Rx</text>
+  <text x="50%" y="78%" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="22" fill="rgba(255,255,255,0.85)">SCAN</text>
+</svg>

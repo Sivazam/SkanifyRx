@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+
+/* AccuBolt Enterprise Premium Tokens */
+@theme {
+  --color-primary: #000000;
+  --color-primary-dark: #18181b; /* zinc-900 */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-bg: #f8fafc; /* slate-50 - cleaner medical feel */
+  --color-surface: #ffffff;
+  --color-text: #0f172a; /* slate-900 */
+  --color-text-muted: #64748b; /* slate-500 */
+  --color-border: #e2e8f0; /* slate-200 */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.glass-sidebar {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+/* Premium smooth transitions */
+* {
+  @apply transition-colors duration-200 ease-in-out;
+}
+
+/* Hide scrollbar for clean UI but allow scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
