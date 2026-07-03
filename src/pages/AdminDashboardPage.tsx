@@ -44,9 +44,9 @@ export function AdminDashboardPage() {
   const [topUpUser, setTopUpUser] = useState<{ id: string, name: string } | null>(null);
 
   useEffect(() => {
-    // Role check — the platform dashboard is super_admin only.
+    // Role check — the platform dashboard is for the platform owner (Firestore role 'admin').
     if (!userProfile) return;
-    if (userProfile.role !== 'super_admin') {
+    if (userProfile.role !== 'admin' && userProfile.role !== 'super_admin') {
       toast.error('Access denied');
       navigate('/');
       return;
