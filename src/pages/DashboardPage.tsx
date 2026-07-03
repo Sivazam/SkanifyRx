@@ -5,7 +5,7 @@ import { useInvoiceList } from '../hooks/useInvoice';
 import { CardSkeleton } from '../components/Skeleton';
 import { getStatusProgress } from '../lib/progress';
 import type { Invoice, InvoiceStatus } from '../types';
-import { deleteDoc, doc, getDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 
@@ -222,6 +222,15 @@ export function DashboardPage() {
                           const urls = (snap.data()?.imageUrls as string[] | undefined) ?? [];
                           await Promise.all(urls.map((p) => deleteObject(ref(storage, p)).catch(() => {})));
                         } catch { /* ignore storage cleanup errors */ }
+                        // Delete the lineItems subcollection (client deleteDoc doesn't cascade).
+                        try {
+                          const liSnap = await getDocs(collection(invoiceRef, 'lineItems'));
+                          if (!liSnap.empty) {
+                            const batch = writeBatch(db);
+                            liSnap.docs.forEach((d) => batch.delete(d.ref));
+                            await batch.commit();
+                          }
+                        } catch { /* ignore line-item cleanup errors */ }
                         await deleteDoc(invoiceRef);
                       } catch (error) {
                         console.error("Error deleting document: ", error);
